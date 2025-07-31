@@ -1,4 +1,1 @@
-fast-agent-mcp>=1.0.0
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-pydantic>=2.0.0
+fast-agent-mcp==0.2.48

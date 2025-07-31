@@ -1,66 +1,132 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from mcp_agent.core.fastagent import FastAgent
+import asyncio
 
 app = FastAPI(title="Nassau National Cable AI Assistant")
-fast = FastAgent("Shopify Assistant")
 
 
-#AGENT DEFINITION
-@fast.agent(
-    name="shopify_helper",
-    instruction="""
-    Main purpose:
+# MOCK VERSION
+class MockCableAgent:
+    async def send(self, message: str):
+        await asyncio.sleep(1)
 
-You are an intelligent support agent designed to assist with product information across multiple channels. Your main function is to provide accurate, clear, and helpful information about our products in particular our range of cables by pulling data from Shopify and associated internal databases about the products we offer and complementing to their usage.
+        message_lower = message.lower()
+        if "cable" in message_lower or "wire" in message_lower:
+            return """I can help you with information about our cable products! We offer various types including:
 
-**Your core responsibilities:**
+- Power cables for electrical installations
+- Data cables for networking and communications  
+- Coaxial cables for audio/video applications
+- Fiber optic cables for high-speed data transmission
 
-**Inform, not sell:** Only provide factual information about product usage, specifications, compatibility, features, installation, and maintenance.
+Each type has specific use cases, materials, and certifications. What type of cable application are you looking for?"""
 
-**Focus on cables:** Give detailed, relevant insights about the various types of cables offered, including but not limited to: use cases, materials, certifications, safety standards, and connectivity.
+        elif "specification" in message_lower or "spec" in message_lower:
+            return """I can provide detailed specifications for our cables including:
 
-**Strict boundaries:** Under no circumstances may you disclose or refer to:
+- Conductor materials and gauge
+- Insulation types and ratings
+- Temperature ratings and environmental specifications
+- Safety certifications (UL, CSA, etc.)
+- Installation guidelines and bend radius requirements
 
-Prices or pricing structures
+Which specific product or application would you like specifications for?"""
 
-Discounts, promotions, or special offers
+        elif "installation" in message_lower or "install" in message_lower:
+            return """For installation guidance, I can help with:
 
-Internal stock levels or availability
+- Proper cable routing and support methods
+- Minimum bend radius requirements
+- Environmental considerations (indoor/outdoor, temperature, moisture)
+- Safety protocols and electrical codes compliance
+- Tools and accessories needed
 
-Commercial management policies or personnel
+What type of installation are you planning?"""
 
-**Guidelines:**
+        elif "price" in message_lower or "cost" in message_lower or "discount" in message_lower:
+            return "I'm here to provide technical and usage information only. For pricing or commercial details, please contact our sales or customer service team directly."
 
-Respond professionally, clearly, and in a customer-friendly tone.
+        elif "hello" in message_lower or "hi" in message_lower:
+            return """Hello! I'm Nassau National Cable's technical support assistant. I'm here to help you with:
 
-Always prioritize technical accuracy and usefulness.
+- Cable specifications and technical details
+- Installation and usage guidance  
+- Product compatibility and applications
+- Safety standards and certifications
 
-If a request pertains to pricing or commercial topics, respond with:
+I focus on technical information only. How can I assist you today?"""
 
-"I'm here to provide technical and usage information only. For pricing or commercial details, please contact our sales or customer service team directly."
+        else:
+            return f"""Thank you for your question about: "{message}"
 
-This is an informational agent only, not a sales or customer service tool.
-    """,
-    servers=["shopify"],  # This connects to the MCP server defined in config (currently ran locally in docker)
-    model="sonnet",  # Use Claude Sonnet
-    use_history=True,  # Remember conversation context
-)
+I'm here to provide technical information about Nassau National Cable's products, including cable specifications, usage applications, installation guidance, and safety standards.
+
+I focus on technical and educational information only. For pricing or commercial inquiries, please contact our sales team directly.
+
+How can I help you with technical information today?"""
+
+
 class ChatMessage(BaseModel):
     message: str
 
-
+mock_agent = MockCableAgent()
 agent_instance = None
 
 
 @app.get("/")
 def root():
-    return {"message": "AI Assistant API is running"}
+    return {"message": "Nassau Cable AI Assistant API is running (Mock Mode)"}
 
 
 @app.get("/health")
 def health_check():
     return {
         "status": "healthy",
-        "ai_ready": agent_instance is not None
+        "ai_ready": agent_instance is not None,
+        "mode": "mock" #Mock mode
     }
+
+
+
+@app.on_event("startup")
+async def startup_event():
+    global agent_instance
+    print("Starting up the MOCK AI assistant")
+
+    # Simulate startup time
+    await asyncio.sleep(2)
+    agent_instance = mock_agent
+    print("✅ Mock AI assistant is ready!")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("Shutting down mock AI assistant")
+
+
+@app.post("/chat")
+async def chat_with_ai(message: ChatMessage):
+    if not agent_instance:
+        raise HTTPException(
+            status_code=503,
+            detail="AI assistant is still starting up, please try again in a moment"
+        )
+
+    try:
+        print(f"Customer message: {message.message}")
+        ai_response = await agent_instance.send(message.message)
+
+        print(f"Mock AI response: {ai_response[:100]}...")
+
+        return {
+            "response": ai_response,
+            "status": "success"
+        }
+
+    except Exception as e:
+        print(f"Error processing message: {e}")
+
+        return {
+            "response": "I'm sorry, I'm having technical difficulties right now. Please try again in a moment.",
+            "status": "error"
+        }
