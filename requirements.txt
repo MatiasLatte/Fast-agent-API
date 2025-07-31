@@ -1,1 +1,4 @@
-fast-agent-mcp==0.2.48
+fastapi
+uvicorn[standard]
+
+#This are empty as mock doesn't use them

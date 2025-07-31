@@ -213,3 +213,4 @@ fastagent.secrets.yaml
 .DS_Store
 Thumbs.db
 
+.idea/
