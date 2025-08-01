@@ -9,7 +9,7 @@ load_dotenv()
 required_env_vars = ['SHOPIFY_ACCESS_TOKEN', 'SHOPIFY_DOMAIN']
 for var in required_env_vars:
     if not os.getenv(var):
-        raise ValueError(f"Variable de entorno requerida no encontrada: {var}")
+        raise ValueError(f"Environmental variable required and not found: {var}")
 app = FastAPI(title="Nassau National Cable AI Assistant")
 fast = FastAgent("Shopify Assistant")
 
