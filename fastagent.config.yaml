@@ -1,21 +1,17 @@
-# This configures how Fast-Agent works
-llm:
+lm:
   provider: "anthropic"
   model_mappings:
-    sonnet: "claude-3-5-sonnet-20241022"
     haiku: "claude-3-5-haiku-20241022"
 
 mcp:
   servers:
     shopify:
-      #Using local Docker server for now
-      command: "docker"
+      command: "npx"
       args:
-        - "run"
-        - "-i"
-        - "--rm"
-        - "-e"
-        - "SHOPIFY_ACCESS_TOKEN=${SHOPIFY_ACCESS_TOKEN}"
-        - "-e"
-        - "MYSHOPIFY_DOMAIN=${MYSHOPIFY_DOMAIN}"
-        - "ghcr.io/metorial/mcp-container--geli2001--shopify-mcp--shopify-mcp"
+        - "shopify-mcp"
+        - "--accessToken"
+        - "${SHOPIFY_ACCESS_TOKEN}"
+        - "--domain"
+        - "${SHOPIFY_DOMAIN}"
+        - "--maxResults"
+        - "8"

@@ -136,6 +136,7 @@ celerybeat.pid
 
 # Environments
 .env
+*.env
 .envrc
 .venv
 env/
@@ -212,4 +213,3 @@ fastagent.secrets.yaml
 # OS
 .DS_Store
 Thumbs.db
-

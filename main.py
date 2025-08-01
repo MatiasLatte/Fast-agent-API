@@ -5,6 +5,8 @@ from mcp_agent.core.fastagent import FastAgent
 app = FastAPI(title="Nassau National Cable AI Assistant")
 fast = FastAgent("Shopify Assistant")
 
+class ChatMessage(BaseModel):
+    message: str
 
 #AGENT DEFINITION
 @fast.agent(
@@ -36,6 +38,10 @@ Respond professionally, clearly, and in a customer-friendly tone.
 
 Always prioritize technical accuracy and usefulness.
 
+Search for maximum 5-8 products per query
+
+Keep responses concise and focused
+
 If a request pertains to pricing or commercial topics, respond with:
 
 "I'm here to provide technical and usage information only. For pricing or commercial details, please contact our sales or customer service team directly."
@@ -43,12 +49,12 @@ If a request pertains to pricing or commercial topics, respond with:
 This is an informational agent only, not a sales or customer service tool.
     """,
     servers=["shopify"],  # This connects to the MCP server defined in config (currently ran locally in docker)
-    model="sonnet",  # Use Claude Sonnet
+    model="haiku",  # Use Claude haiku
     use_history=True,  # Remember conversation context
 )
-class ChatMessage(BaseModel):
-    message: str
-
+async def shopify_helper(message: str) -> str:
+    # Este cuerpo nunca se ejecuta directamente
+    return "This is a placeholder response from the agent"
 
 agent_instance = None
 
