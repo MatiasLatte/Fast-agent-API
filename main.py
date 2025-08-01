@@ -1,7 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from mcp_agent.core.fastagent import FastAgent
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+
+required_env_vars = ['SHOPIFY_ACCESS_TOKEN', 'SHOPIFY_DOMAIN']
+for var in required_env_vars:
+    if not os.getenv(var):
+        raise ValueError(f"Variable de entorno requerida no encontrada: {var}")
 app = FastAPI(title="Nassau National Cable AI Assistant")
 fast = FastAgent("Shopify Assistant")
 
