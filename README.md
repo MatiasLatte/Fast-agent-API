@@ -28,7 +28,7 @@ Built with FastAPI and FastAgent, this service connects to our Shopify product d
 
 The system uses two configuration approaches due to compatibility issues:  
 
-### `fastagent.secrets.yaml :`
+### fastagent.secrets.yaml :
 ```yaml
 anthropic:
   api_key: "your_anthropic_key"
