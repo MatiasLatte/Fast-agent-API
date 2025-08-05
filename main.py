@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from mcp_agent.core.fastagent import FastAgent
 import os
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
@@ -116,8 +117,10 @@ async def chat_with_ai(message: ChatMessage):
     try:
         print(f"Customer message: {message.message}")
 
-        # Send the message to your Fast-Agent
-        ai_response = await agent_instance.shopify_helper.send(message.message)
+        ai_response = await asyncio.wait_for(
+            agent_instance.shopify_helper.send(message.message),
+            timeout=45.0  # 45 second timeout
+        )
 
         print(f"AI response: {ai_response[:100]}")
 
@@ -126,10 +129,29 @@ async def chat_with_ai(message: ChatMessage):
             "status": "success"
         }
 
+    except asyncio.TimeoutError:
+        print("Request timed out - high volume of inquiries")
+        return {
+            "response": "We're currently receiving a high volume of inquiries. Please hold on, we'll get back to you shortly.",
+            "status": "timeout"
+        }
+
     except Exception as e:
+        error_message = str(e).lower()
         print(f"Error processing message: {e}")
 
-        # Return an error message to the customer
+        if ("404" in error_message or
+                "usage" in error_message or
+                "limit" in error_message or
+                "quota" in error_message or
+                "budget" in error_message or
+                "rate_limit" in error_message):
+            return {
+                "response": "The AI assistant is temporarily unavailable. Please contact us again tomorrow.",
+                "status": "usage_limit_exceeded"
+            }
+
+        # General error
         return {
             "response": "I'm sorry, I'm having technical difficulties right now. Please try again in a moment.",
             "status": "error"
