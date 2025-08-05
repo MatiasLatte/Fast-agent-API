@@ -4,8 +4,11 @@ from mcp_agent.core.fastagent import FastAgent
 import os
 from dotenv import load_dotenv
 import asyncio
+from typing import Dict
+import uuid
 
 load_dotenv()
+conversation_sessions: Dict[str, list] = {}
 
 required_env_vars = ['SHOPIFY_ACCESS_TOKEN', 'SHOPIFY_DOMAIN']
 for var in required_env_vars:
@@ -16,6 +19,7 @@ fast = FastAgent("Shopify Assistant")
 
 class ChatMessage(BaseModel):
     message: str
+    session_id: str = None
 
 #AGENT DEFINITION
 @fast.agent(
@@ -56,10 +60,11 @@ If a request pertains to pricing or commercial topics, respond with:
 "I'm here to provide technical and usage information only. For pricing or commercial details, please contact our sales or customer service team directly."
 
 This is an informational agent only, not a sales or customer service tool.
+**CRITICAL: Each conversation is separate. Only use the conversation history provided in the current request. Do not reference information from other conversations or sessions unless the have the same session ID.**
     """,
-    servers=["shopify"],  # This connects to the MCP server defined in config (currently ran locally in docker)
-    model="haiku",  # Use Claude haiku
-    use_history=True,  # Remember conversation context
+    servers=["shopify"],
+    model="haiku",
+    use_history=True,
 )
 async def shopify_helper(message: str) -> str:
     # Este cuerpo nunca se ejecuta directamente
@@ -109,24 +114,41 @@ async def shutdown_event():
 @app.post("/chat")
 async def chat_with_ai(message: ChatMessage):
     if not agent_instance:
-        raise HTTPException(
-            status_code=503,
-            detail="AI agent is still starting up, please try again in a moment"
-        )
+        raise HTTPException(status_code=503, detail="AI agent is still starting up")
+
+    session_id = message.session_id or str(uuid.uuid4())
 
     try:
-        print(f"Customer message: {message.message}")
+        print(f"Customer message: {message.message} (Session: {session_id})")
+
+        if session_id not in conversation_sessions:
+            conversation_sessions[session_id] = []
+
+        conversation_sessions[session_id].append(f"User: {message.message}")
+
+        recent_history = conversation_sessions[session_id][-10:]
+        context = "\n".join(recent_history) if recent_history else ""
+
+        full_message = f"[Session {session_id[:8]}] Conversation history:\n{context}\n\nCurrent question: {message.message}"
 
         ai_response = await asyncio.wait_for(
-            agent_instance.shopify_helper.send(message.message),
-            timeout=45.0  # 45 second timeout
+            agent_instance.shopify_helper.send(full_message),
+            timeout=90.0
         )
+
+        if '{"products":' in ai_response:
+            parts = ai_response.split('}]}')
+            if len(parts) > 1:
+                ai_response = parts[-1].strip()
+
+        conversation_sessions[session_id].append(f"Assistant: {ai_response}")
 
         print(f"AI response: {ai_response[:100]}")
 
         return {
             "response": ai_response,
-            "status": "success"
+            "status": "success",
+            "session_id": session_id
         }
 
     except asyncio.TimeoutError:
