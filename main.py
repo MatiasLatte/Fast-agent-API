@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from mcp_agent.core.fastagent import FastAgent
 import os
@@ -15,6 +16,17 @@ for var in required_env_vars:
     if not os.getenv(var):
         raise ValueError(f"Environmental variable required and not found: {var}")
 app = FastAPI(title="Nassau National Cable AI Assistant")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://qcg6cr-ge.myshopify.com",
+        "https://*.myshopify.com",
+        "*"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 fast = FastAgent("Shopify Assistant")
 
 class ChatMessage(BaseModel):
@@ -110,6 +122,9 @@ async def shutdown_event():
         except Exception as e:
             print(f"Error during shutdown: {e}")
 
+@app.options("/chat")
+def chat_options():
+    return {}
 
 @app.post("/chat")
 async def chat_with_ai(message: ChatMessage):
